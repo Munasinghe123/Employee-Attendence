@@ -33,6 +33,10 @@ export default function Login() {
 
         <View style={styles.content}>
           <View style={styles.card}>
+            <Text style={styles.loginHeading}>
+              Login
+            </Text>
+
             <TextInput
               placeholder="User name"
               placeholderTextColor="#9ca3af"
@@ -48,9 +52,9 @@ export default function Login() {
               secureTextEntry
             />
 
-            <TouchableOpacity 
-            onPress={() => router.push('/dashboard')}
-            style={styles.loginButton}>
+            <TouchableOpacity
+              onPress={() => router.push('/dashboard')}
+              style={styles.loginButton}>
               <Text style={styles.loginText}>Login</Text>
             </TouchableOpacity>
           </View>
@@ -65,6 +69,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f3ff',
+  },
+  loginHeading: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#7c3aed',
+    marginBottom: 8,
+    textAlign: 'center',
+    marginEnd: 10,
   },
 
   header: {
