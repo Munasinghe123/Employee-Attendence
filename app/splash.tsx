@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Dimensions } from 'react-native';
+
+import { View, StyleSheet, Animated, Dimensions, Keyboard } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Login from './login';
+import { useEffect, useRef, useState } from 'react';
 
 const { height } = Dimensions.get('window');
 
@@ -10,6 +11,35 @@ export default function Splash() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const moveUpAnim = useRef(new Animated.Value(0)).current;
   const loginOpacity = useRef(new Animated.Value(0)).current;
+
+  const brandOpacity = useRef(new Animated.Value(1)).current;
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+      Animated.timing(brandOpacity, {
+        toValue: 0,
+        duration: 120,
+        useNativeDriver: true,
+      }).start();
+    });
+
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+      Animated.timing(brandOpacity, {
+        toValue: 1,
+        duration: 120,
+        useNativeDriver: true,
+      }).start();
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
 
   useEffect(() => {
     // ORIGINAL splash animation (UNCHANGED)
@@ -41,39 +71,44 @@ export default function Splash() {
           useNativeDriver: true,
         }),
       ]).start();
-    }, 2500);
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, []);
 
   return (
-    <View style={{ flex: 1 }}>
-      <LinearGradient
-        colors={['#8b5cf6', '#4c1d95']}
-        style={styles.container}
-      >
-        <Animated.View
-          style={{
-            transform: [{ translateY: moveUpAnim }],
-          }}
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+
+      <Animated.View style={{ flex: 1, opacity: brandOpacity }}>
+        <LinearGradient
+          colors={['#8b5cf6', '#4c1d95']}
+          style={styles.container}
         >
-          <View style={styles.logoHalo}>
-            <View style={styles.logoCard}>
-              <Animated.Image
-                source={require('../assets/images/logo.png')}
-                style={[
-                  styles.logo,
-                  {
-                    transform: [{ scale: scaleAnim }],
-                    opacity: fadeAnim,
-                  },
-                ]}
-                resizeMode="contain"
-              />
+
+          <Animated.View
+            style={{
+              transform: [{ translateY: moveUpAnim }],
+            }}
+          >
+            <View style={styles.logoHalo}>
+              <View style={styles.logoCard}>
+                <Animated.Image
+                  source={require('../assets/images/logo.png')}
+                  style={[
+                    styles.logo,
+                    {
+                      transform: [{ scale: scaleAnim }],
+                      opacity: fadeAnim,
+                    },
+                  ]}
+                  resizeMode="contain"
+                />
+              </View>
             </View>
-          </View>
-        </Animated.View>
-      </LinearGradient>
+          </Animated.View>
+        </LinearGradient>
+      </Animated.View>
+
 
       {/* LOGIN */}
       <Animated.View
