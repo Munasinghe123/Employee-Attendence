@@ -4,21 +4,22 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
     <ThemeProvider value={colorScheme === 'light' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        {/* Splash (index.tsx) */}
+        <Stack.Screen name="index" />
+
+        {/* Auth */}
         <Stack.Screen name="login" />
-        <Stack.Screen name="splash" />
+
+        {/* Main App */}
+        <Stack.Screen name="(drawer)" />
       </Stack>
+
       <StatusBar style="auto" />
     </ThemeProvider>
   );

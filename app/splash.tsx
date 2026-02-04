@@ -1,15 +1,18 @@
 import { useEffect, useRef } from 'react';
-import { View, Image, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet, Animated, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import Login from './login';
+
+const { height } = Dimensions.get('window');
 
 export default function Splash() {
-  const router = useRouter();
-  
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const moveUpAnim = useRef(new Animated.Value(0)).current;
+  const loginOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // ORIGINAL splash animation (UNCHANGED)
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
@@ -24,34 +27,68 @@ export default function Splash() {
       }),
     ]).start();
 
+    // TRANSITION TO LOGIN
     const timer = setTimeout(() => {
-      router.replace('/login'); 
+      Animated.parallel([
+        Animated.timing(moveUpAnim, {
+          toValue: -height * 0.28,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(loginOpacity, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }, 2500);
 
     return () => clearTimeout(timer);
   }, []);
 
   return (
-    <LinearGradient
-      colors={['#8b5cf6', '#4c1d95']}
-      style={styles.container}
-    >
-      <View style={styles.logoHalo}>
-        <View style={styles.logoCard}>
-          <Animated.Image
-            source={require('../assets/images/logo.png')}
-            style={[
-              styles.logo,
-              {
-                transform: [{ scale: scaleAnim }],
-                opacity: fadeAnim,
-              }
-            ]}
-            resizeMode="contain"
-          />
-        </View>
-      </View>
-    </LinearGradient>
+    <View style={{ flex: 1 }}>
+      {/* SPLASH (VISUALLY UNCHANGED) */}
+      <LinearGradient
+        colors={['#8b5cf6', '#4c1d95']}
+        style={styles.container}
+      >
+        <Animated.View
+          style={{
+            transform: [{ translateY: moveUpAnim }],
+          }}
+        >
+          <View style={styles.logoHalo}>
+            <View style={styles.logoCard}>
+              <Animated.Image
+                source={require('../assets/images/logo.png')}
+                style={[
+                  styles.logo,
+                  {
+                    transform: [{ scale: scaleAnim }],
+                    opacity: fadeAnim,
+                  },
+                ]}
+                resizeMode="contain"
+              />
+            </View>
+          </View>
+        </Animated.View>
+      </LinearGradient>
+
+      {/* LOGIN */}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFillObject,
+          {
+            opacity: loginOpacity,
+            paddingTop: height * 0.45,
+          },
+        ]}
+      >
+        <Login embedded />
+      </Animated.View>
+    </View>
   );
 }
 

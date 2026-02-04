@@ -6,12 +6,14 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Dimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import Svg, { Path } from 'react-native-svg';
 
+const { width, height } = Dimensions.get('window');
 
-export default function Login() {
+export default function Login({ embedded = false }) {
   const router = useRouter();
 
   return (
@@ -20,28 +22,17 @@ export default function Login() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.container}>
-
-        <LinearGradient
-          colors={['#8b5cf6', '#4c1d95']}
-          style={styles.header}
-        >
-          <Text style={styles.welcome}>Welcome Back</Text>
-          <Text style={styles.subtitle}>
-            Login to manage attendance & workforce
-          </Text>
-        </LinearGradient>
+        
+       
 
         <View style={styles.content}>
           <View style={styles.card}>
-            <Text style={styles.loginHeading}>
-              Login
-            </Text>
+            <Text style={styles.loginHeading}>Login</Text>
 
             <TextInput
               placeholder="User name"
               placeholderTextColor="#9ca3af"
               style={styles.input}
-              keyboardType="email-address"
               autoCapitalize="none"
             />
 
@@ -53,13 +44,13 @@ export default function Login() {
             />
 
             <TouchableOpacity
-              onPress={() => router.push('/dashboard')}
-              style={styles.loginButton}>
+              onPress={() => router.replace('/dashboard')}
+              style={styles.loginButton}
+            >
               <Text style={styles.loginText}>Login</Text>
             </TouchableOpacity>
           </View>
         </View>
-
       </View>
     </KeyboardAvoidingView>
   );
@@ -67,49 +58,37 @@ export default function Login() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#f5f3ff',
-  },
-  loginHeading: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#7c3aed',
-    marginBottom: 8,
-    textAlign: 'center',
-    marginEnd: 10,
-  },
+  flex: 1,
+  backgroundColor: 'transparent',
+},
 
-  header: {
-    paddingTop: 80,
-    paddingBottom: 60,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-  },
 
-  welcome: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#ffffff',
-    marginBottom: 6,
-  },
-
-  subtitle: {
-    fontSize: 14,
-    color: '#e9d5ff',
-    lineHeight: 20,
+  wavyBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: height * 0.6,
+    zIndex: 0,
   },
 
   content: {
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 20,
+    zIndex: 1,
+  },
+
+  loginHeading: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#7c3aed',
+    marginBottom: 8,
+    textAlign: 'center',
   },
 
   card: {
     backgroundColor: '#ffffff',
-    marginHorizontal: 20,
-    marginTop: -40,
     borderRadius: 24,
     padding: 24,
     shadowColor: '#000',
@@ -137,18 +116,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     marginTop: 8,
-    shadowColor: '#7c3aed',
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
   },
 
   loginText: {
     color: '#ffffff',
     fontSize: 15,
     fontWeight: '700',
-    letterSpacing: 0.4,
   },
-
 });
