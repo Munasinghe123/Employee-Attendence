@@ -1,161 +1,260 @@
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Image,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import WaveBackground from '@/components/landing-page/wave';
-import { Keyboard } from 'react-native';
-import { useEffect, useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
-
-
-export default function Login({ embedded = false }) {
-
+export default function Login() {
   const router = useRouter();
-
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-
-  useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardDidShow', () => {
-      setKeyboardVisible(true);
-    });
-
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardVisible(false);
-    });
-
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
-
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={styles.root}>
-
-        {/* WHITE WAVE BACKGROUND */}
-        <View style={styles.waveContainer}>
-          <WaveBackground />
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <LinearGradient
+        colors={['#a78bfa', '#7c3aed', '#5b21b6']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.container}
+      >
+        {/* Logo Section */}
+        <View style={styles.logoSection}>
+          <View style={styles.logoHalo}>
+            <View style={styles.logoCard}>
+              <Image
+                source={require('../assets/images/logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
+          </View>
+          <Text style={styles.appName}>Employee Management</Text>
         </View>
 
-        {/* LOGIN CARD */}
-        <View
-          style={[
-            styles.cardContainer,
-            keyboardVisible && { paddingBottom: 20 },
-          ]}
-        >
-
+        {/* Login Card */}
+        <View style={styles.centerContainer}>
           <View style={styles.card}>
-            <Text style={styles.loginHeading}>Login</Text>
+            <Text style={styles.heading}>Welcome Back</Text>
+            <Text style={styles.subHeading}>Sign in to continue</Text>
 
-            <TextInput
-              placeholder="User name"
-              placeholderTextColor="#9ca3af"
-              style={styles.input}
-              autoCapitalize="none"
-            />
+            {/* Username Input */}
+            <View style={styles.inputWrapper}>
+              <Ionicons name="person-outline" size={22} color="#6b7280" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Username"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholderTextColor="#9ca3af"
+              />
+            </View>
 
-            <TextInput
-              placeholder="Password"
-              placeholderTextColor="#9ca3af"
-              style={styles.input}
-              secureTextEntry
-            />
+            {/* Password Input */}
+            <View style={styles.inputWrapper}>
+              <Ionicons name="lock-closed-outline" size={22} color="#6b7280" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholderTextColor="#9ca3af"
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <Ionicons
+                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                  size={22}
+                  color="#6b7280"
+                  style={styles.eyeIcon}
+                />
+              </TouchableOpacity>
+            </View>
 
+            {/* Login Button */}
             <TouchableOpacity
-              onPress={() => router.push('/dashboard')}
               style={styles.loginButton}
+              onPress={() => router.push('/dashboard')}
             >
-              <Text style={styles.loginText}>Login</Text>
+              <Text style={styles.buttonText}>Login</Text>
             </TouchableOpacity>
+
           </View>
         </View>
-
-      </View>
-    </KeyboardAvoidingView>
+      </LinearGradient>
+    </TouchableWithoutFeedback>
   );
-
 }
 
 const styles = StyleSheet.create({
-  root: {
+  container: {
     flex: 1,
   },
 
-  waveContainer: {
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
+  logoSection: {
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingBottom: 20,
   },
 
-  cardContainer: {
+  logoHalo: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  logoCard: {
+    width: 95,
+    height: 95,
+    borderRadius: 24,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 12,
+  },
+
+  logo: {
+    width: '70%',
+    height: '70%',
+  },
+
+  appName: {
+    marginTop: 16,
+    fontSize: 22,
+    fontWeight: '700',
+    color: 'white',
+    letterSpacing: 0.5,
+  },
+
+  centerContainer: {
     flex: 1,
-    justifyContent: 'flex-end',
-    paddingBottom: 60,
-    paddingHorizontal: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
   },
 
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 24,
-    padding: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.96)',
+    borderRadius: 32,
+    padding: 36,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 10,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.28,
+    shadowRadius: 24,
+    elevation: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
 
-  loginHeading: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#7c3aed',
-    marginBottom: 16,
+  heading: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#5b21b6',
+    marginBottom: 8,
     textAlign: 'center',
   },
 
-  input: {
+  subHeading: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginBottom: 32,
+    textAlign: 'center',
+  },
+
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#f9fafb',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 14,
-    marginBottom: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#c8cbd0',
+    borderColor: '#e5e7eb',
+    marginBottom: 16,
+    width: '100%',
+  },
+
+  inputIcon: {
+    paddingLeft: 16,
+  },
+
+  input: {
+    flex: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    fontSize: 16,
     color: '#111827',
+  },
+
+  eyeIcon: {
+    paddingHorizontal: 16,
+  },
+
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginBottom: 24,
+  },
+
+  forgotText: {
+    color: '#6d28d9',
+    fontWeight: '600',
+    fontSize: 14,
   },
 
   loginButton: {
     backgroundColor: '#7c3aed',
+    width: '100%',
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: 'center',
-    marginTop: 8,
+    marginBottom: 24,
     shadowColor: '#7c3aed',
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
   },
 
-  loginText: {
-    color: '#ffffff',
-    fontSize: 15,
+  buttonText: {
+    color: 'white',
+    fontSize: 18,
     fontWeight: '700',
-    letterSpacing: 0.4,
+  },
+
+  signupContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  signupText: {
+    color: '#4b5563',
+    fontSize: 15,
+  },
+
+  signupLink: {
+    color: '#7c3aed',
+    fontWeight: '700',
+    fontSize: 15,
   },
 });
-
