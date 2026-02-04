@@ -48,7 +48,6 @@ export default function Splash() {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* SPLASH (VISUALLY UNCHANGED) */}
       <LinearGradient
         colors={['#8b5cf6', '#4c1d95']}
         style={styles.container}

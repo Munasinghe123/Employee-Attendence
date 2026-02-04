@@ -9,30 +9,61 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import WaveBackground from '@/components/landing-page/wave';
+import { Keyboard } from 'react-native';
+import { useEffect, useState } from 'react';
+
 
 
 export default function Login({ embedded = false }) {
 
   const router = useRouter();
 
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+    });
+
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={[styles.container, embedded && { backgroundColor: 'transparent' }]}>
+      <View style={styles.root}>
 
-        <View style={styles.content}>
+        {/* WHITE WAVE BACKGROUND */}
+        <View style={styles.waveContainer}>
+          <WaveBackground />
+        </View>
+
+        {/* LOGIN CARD */}
+        <View
+          style={[
+            styles.cardContainer,
+            keyboardVisible && { paddingBottom: 20 },
+          ]}
+        >
+
           <View style={styles.card}>
-            <Text style={styles.loginHeading}>
-              Login
-            </Text>
+            <Text style={styles.loginHeading}>Login</Text>
 
             <TextInput
               placeholder="User name"
               placeholderTextColor="#9ca3af"
               style={styles.input}
-              keyboardType="email-address"
               autoCapitalize="none"
             />
 
@@ -45,7 +76,8 @@ export default function Login({ embedded = false }) {
 
             <TouchableOpacity
               onPress={() => router.push('/dashboard')}
-              style={styles.loginButton}>
+              style={styles.loginButton}
+            >
               <Text style={styles.loginText}>Login</Text>
             </TouchableOpacity>
           </View>
@@ -54,53 +86,29 @@ export default function Login({ embedded = false }) {
       </View>
     </KeyboardAvoidingView>
   );
+
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: '#f5f3ff',
-  },
-  content: {
-  flex: 1,
-  justifyContent: 'center',
-  paddingHorizontal: 20,
-},
-
-  loginHeading: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#7c3aed',
-    marginBottom: 8,
-    textAlign: 'center',
-    marginEnd: 10,
   },
 
-  header: {
-    paddingTop: 80,
+  waveContainer: {
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+  },
+
+  cardContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
     paddingBottom: 60,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-  },
-
-  welcome: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#ffffff',
-    marginBottom: 6,
-  },
-
-  subtitle: {
-    fontSize: 14,
-    color: '#e9d5ff',
-    lineHeight: 20,
+    paddingHorizontal: 20,
   },
 
   card: {
     backgroundColor: '#ffffff',
-    marginHorizontal: 20,
-    marginTop: -40,
     borderRadius: 24,
     padding: 24,
     shadowColor: '#000',
@@ -108,6 +116,14 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 8 },
     elevation: 10,
+  },
+
+  loginHeading: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#7c3aed',
+    marginBottom: 16,
+    textAlign: 'center',
   },
 
   input: {
@@ -141,5 +157,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.4,
   },
-
 });
+
