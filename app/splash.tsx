@@ -1,5 +1,11 @@
-
-import { View, StyleSheet, Animated, Dimensions, Keyboard } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Animated,
+  Dimensions,
+  Keyboard,
+  Platform,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Login from './login';
 import { useEffect, useRef, useState } from 'react';
@@ -7,17 +13,26 @@ import { useEffect, useRef, useState } from 'react';
 const { height } = Dimensions.get('window');
 
 export default function Splash() {
+  // Brand / splash animations
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const moveUpAnim = useRef(new Animated.Value(0)).current;
-  const loginOpacity = useRef(new Animated.Value(0)).current;
-
   const brandOpacity = useRef(new Animated.Value(1)).current;
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
+  // Login visibility (STATE, NOT ANIMATION)
+  const [showLogin, setShowLogin] = useState(false);
+
+  /* -------------------------------
+     Keyboard → hide / show branding
+     (visual only)
+  -------------------------------- */
   useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardDidShow', () => {
-      setKeyboardVisible(true);
+    const showEvent =
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent =
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, () => {
       Animated.timing(brandOpacity, {
         toValue: 0,
         duration: 120,
@@ -25,11 +40,10 @@ export default function Splash() {
       }).start();
     });
 
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardVisible(false);
+    const hideSub = Keyboard.addListener(hideEvent, () => {
       Animated.timing(brandOpacity, {
         toValue: 1,
-        duration: 120,
+        duration: 140,
         useNativeDriver: true,
       }).start();
     });
@@ -40,9 +54,10 @@ export default function Splash() {
     };
   }, []);
 
-
+  /* -------------------------------
+     Splash animation (runs once)
+  -------------------------------- */
   useEffect(() => {
-    // ORIGINAL splash animation (UNCHANGED)
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
@@ -57,34 +72,28 @@ export default function Splash() {
       }),
     ]).start();
 
-    // TRANSITION TO LOGIN
     const timer = setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(moveUpAnim, {
-          toValue: -height * 0.28,
-          duration: 700,
-          useNativeDriver: true,
-        }),
-        Animated.timing(loginOpacity, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      Animated.timing(moveUpAnim, {
+        toValue: -height * 0.28,
+        duration: 700,
+        useNativeDriver: true,
+      }).start(() => {
+        //  Login becomes visible ONCE and forever
+        setShowLogin(true);
+      });
     }, 2000);
 
     return () => clearTimeout(timer);
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
-
-      <Animated.View style={{ flex: 1, opacity: brandOpacity }}>
+    <View style={styles.root}>
+      {/* SPLASH / BRAND LAYER */}
+      <Animated.View style={[styles.brandLayer, { opacity: brandOpacity }]}>
         <LinearGradient
           colors={['#8b5cf6', '#4c1d95']}
           style={styles.container}
         >
-
           <Animated.View
             style={{
               transform: [{ translateY: moveUpAnim }],
@@ -109,24 +118,31 @@ export default function Splash() {
         </LinearGradient>
       </Animated.View>
 
-
-      {/* LOGIN */}
-      <Animated.View
-        style={[
-          StyleSheet.absoluteFillObject,
-          {
-            opacity: loginOpacity,
-            paddingTop: height * 0.45,
-          },
-        ]}
-      >
-        <Login embedded />
-      </Animated.View>
+      {/* LOGIN (STATE-DRIVEN, NEVER ANIMATED) */}
+      {showLogin && (
+        <View
+          style={[
+            StyleSheet.absoluteFillObject,
+            { paddingTop: height * 0.45 },
+          ]}
+        >
+          <Login embedded />
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+
+  brandLayer: {
+    flex: 1,
+  },
+
   container: {
     flex: 1,
     justifyContent: 'center',
