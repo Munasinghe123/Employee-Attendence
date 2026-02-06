@@ -4,25 +4,58 @@ import {
   DrawerContentScrollView,
   DrawerItemList,
 } from '@react-navigation/drawer';
-import { StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { AuthContext } from '@/context/authContext';
+import { useContext } from 'react';
+import { Redirect, useRouter } from 'expo-router';
+
 
 export default function DrawerLayout() {
+
+  const auth = useContext(AuthContext);
+
+  if (!auth || auth.loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (!auth.isAuthenticated) {
+    return <Redirect href="/login" />;
+  }
+
   return (
     <Drawer
       screenOptions={{
         headerShown: true,
-        drawerActiveBackgroundColor: '#7c3aed', 
-        drawerActiveTintColor: '#FFFFFF', 
-        drawerInactiveTintColor: '#000000', 
+        drawerActiveBackgroundColor: '#7c3aed',
+        drawerActiveTintColor: '#FFFFFF',
+        drawerInactiveTintColor: '#000000',
       }}
-      drawerContent={(props) => (
-        <DrawerContentScrollView {...props}>
-        
-          <View style={styles.linkContainer}>
-            <DrawerItemList {...props} />
-          </View>
-        </DrawerContentScrollView>
-      )}
+      drawerContent={(props) => {
+        const router = useRouter();
+
+        const handleLogout = async () => {
+          await auth?.logout();
+          router.replace('/login');
+        };
+
+        return (
+          <DrawerContentScrollView {...props}>
+            <View style={styles.linkContainer}>
+              <DrawerItemList {...props} />
+            </View>
+
+            <View style={styles.logoutContainer}>
+              <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+                <Text style={styles.logoutText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </DrawerContentScrollView>
+        );
+      }}
     >
       <Drawer.Screen
         name="dashboard"
@@ -31,15 +64,34 @@ export default function DrawerLayout() {
 
       <Drawer.Screen
         name="daily-log-sheet"
-        options={{ title: 'Daily Log Sheet',  drawerLabel: 'Daily Log Sheet', }}
-        
+        options={{ title: 'Daily Log Sheet', drawerLabel: 'Daily Log Sheet', }}
       />
+
+
     </Drawer>
   );
 }
 
 const styles = StyleSheet.create({
   linkContainer: {
-    marginTop: 40, 
+    marginTop: 40,
+  },
+
+  logoutContainer: {
+    marginTop: 24,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+
+  logoutButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+  },
+
+  logoutText: {
+    color: '#dc2626',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

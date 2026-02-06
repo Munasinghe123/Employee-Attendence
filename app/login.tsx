@@ -12,15 +12,66 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useContext } from 'react';
+import { AuthContext } from '@/context/authContext';
+
 
 export default function Login() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [item, setItem] = useState("");
+  const auth = useContext(AuthContext);
 
+  if (!auth) {
+    throw new Error('AuthContext must be used within AuthProvider');
+  }
+
+  const { login } = auth;
+
+  const handleLogin = async () => {
+    try {
+      if (!username || !password) {
+        alert('Please enter username and password');
+        return;
+      }
+
+      const response = await axios.post(
+        'http://localhost:7000/auth/login',
+        {
+          name: username,
+          password: password,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const { accessToken } = response.data;
+
+      await login(accessToken);
+
+      console.log('Login successful');
+
+      router.replace('/dashboard');
+
+    } catch (error: any) {
+      console.log(error);
+
+      if (error.response) {
+        alert(error.response.data.message || 'Login failed');
+      } else {
+        alert('Server not reachable');
+      }
+    }
+  };
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    // <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <LinearGradient
         colors={['#a78bfa', '#7c3aed', '#5b21b6']}
         start={{ x: 0, y: 0 }}
@@ -63,9 +114,15 @@ export default function Login() {
 
             {/* Password Input */}
             <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={22} color="#6b7280" style={styles.inputIcon} />
+              <Ionicons
+                name="lock-closed-outline"
+                size={22}
+                color="#6b7280"
+                style={styles.inputIcon}
+              />
+
               <TextInput
-                style={styles.input}
+                style={[styles.input, styles.passwordInput]}
                 placeholder="Password"
                 value={password}
                 onChangeText={setPassword}
@@ -74,20 +131,23 @@ export default function Login() {
                 autoCorrect={false}
                 placeholderTextColor="#9ca3af"
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeButton}
+                activeOpacity={0.7}
+              >
                 <Ionicons
                   name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                   size={22}
                   color="#6b7280"
-                  style={styles.eyeIcon}
                 />
               </TouchableOpacity>
             </View>
-
             {/* Login Button */}
             <TouchableOpacity
               style={styles.loginButton}
-              onPress={() => router.push('/dashboard')}
+              onPress={handleLogin}
             >
               <Text style={styles.buttonText}>Login</Text>
             </TouchableOpacity>
@@ -95,7 +155,7 @@ export default function Login() {
           </View>
         </View>
       </LinearGradient>
-    </TouchableWithoutFeedback>
+    // </TouchableWithoutFeedback>
   );
 }
 
@@ -209,6 +269,18 @@ const styles = StyleSheet.create({
 
   eyeIcon: {
     paddingHorizontal: 16,
+  },
+  passwordInput: {
+    paddingRight: 48, // reserve space for eye icon
+  },
+
+  eyeButton: {
+    position: 'absolute',
+    right: 12,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 40,
   },
 
   forgotPassword: {

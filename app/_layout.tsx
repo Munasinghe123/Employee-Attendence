@@ -3,24 +3,28 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AuthProvider } from '@/context/authContext';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
     <ThemeProvider value={colorScheme === 'light' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        {/* Splash (index.tsx) */}
-        <Stack.Screen name="index" />
+      <AuthProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          {/* Splash (index.tsx) */}
+          <Stack.Screen name="index" />
 
-        {/* Auth */}
-        <Stack.Screen name="login" />
+          {/* Auth */}
+          <Stack.Screen name="login" />
 
-        {/* Main App */}
-        <Stack.Screen name="(drawer)" />
-      </Stack>
+          {/* Main App */}
+          <Stack.Screen name="(drawer)" />
+        </Stack>
 
-      <StatusBar style="auto" />
+        <StatusBar style="auto" />
+      </AuthProvider>
+
     </ThemeProvider>
   );
 }
