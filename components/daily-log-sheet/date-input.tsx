@@ -52,7 +52,7 @@ export default function DateInput({
 const styles = StyleSheet.create({
   inputWrap: {
     width: '48%',
-    marginBottom: 10,
+    marginBottom: 14,
   },
   label: {
     fontSize: 12,
@@ -63,7 +63,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#7c3aed',
     borderRadius: 8,
-    padding: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     backgroundColor: '#fff',
   },
 });

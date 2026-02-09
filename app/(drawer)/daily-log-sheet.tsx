@@ -9,9 +9,11 @@ import {
 } from 'react-native';
 
 import DateInput from '@/components/daily-log-sheet/date-input';
+import TimeInput from '@/components/daily-log-sheet/time-input';
 
 const PURPLE = '#7c3aed';
 
+/* TYPES */
 
 type TransformerData = {
   kv33?: string;
@@ -38,6 +40,7 @@ type StationSupply = {
 
 type DailyLogForm = {
   date: string;
+  time: string;
   substation: string;
   transformer01: TransformerData;
   transformer02: TransformerData;
@@ -51,14 +54,15 @@ type FormSection = keyof Omit<
   'date' | 'substation' | 'remarks'
 >;
 
+/*  SCREEN  */
 
 export default function DailyLogSheet() {
-  const [step, setStep] = useState<number>(0);
-
+  const [step, setStep] = useState(0);
   const totalSteps = 5;
 
   const [form, setForm] = useState<DailyLogForm>({
     date: '',
+    time: '',
     substation: '',
     transformer01: {},
     transformer02: {},
@@ -67,8 +71,14 @@ export default function DailyLogSheet() {
     remarks: '',
   });
 
+  type ObjectSections =
+  | 'transformer01'
+  | 'transformer02'
+  | 'feeders'
+  | 'stationSupply';
+
   function update<
-    T extends FormSection,
+    T extends ObjectSections,
     K extends keyof DailyLogForm[T]
   >(section: T, field: K, value: string) {
     setForm((prev) => ({
@@ -80,7 +90,6 @@ export default function DailyLogSheet() {
     }));
   }
 
-
   const steps = [
     /* STEP 1 */
     <View key="step1">
@@ -89,17 +98,23 @@ export default function DailyLogSheet() {
           label="Date"
           value={form.date}
           onChange={(v) =>
-            setForm((prev) => ({
-              ...prev,
-              date: v,
-            }))
+            setForm((prev) => ({ ...prev, date: v }))
+          }
+        />
+        <TimeInput
+          label="Time"
+          value={form.time}
+          onChange={(v) =>
+            setForm((prev) => ({ ...prev, time: v }))
           }
         />
 
         <Input
           label="Primary Substation"
           value={form.substation}
-          onChange={(v) => setForm((p) => ({ ...p, substation: v }))}
+          onChange={(v) =>
+            setForm((p) => ({ ...p, substation: v }))
+          }
         />
       </Section>
     </View>,
@@ -146,6 +161,7 @@ export default function DailyLogSheet() {
         <TextInput
           style={styles.textArea}
           multiline
+          placeholder="Additional notes..."
           value={form.remarks}
           onChangeText={(v) =>
             setForm((p) => ({ ...p, remarks: v }))
@@ -155,14 +171,13 @@ export default function DailyLogSheet() {
     </View>,
   ];
 
-  /* ===================== UI ===================== */
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} >
-
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
       <View style={styles.formWrapper}>
-
-        {/* PROGRESS */}
+        {/* Progress */}
         <View style={styles.progressWrap}>
           <View
             style={[
@@ -178,33 +193,28 @@ export default function DailyLogSheet() {
 
         {steps[step]}
 
-        {/* NAVIGATION */}
+        {/* Navigation */}
         <View style={styles.navRow}>
           <Button
             text="Back"
-            onPress={() => setStep(step - 1)}
             disabled={step === 0}
+            onPress={() => setStep(step - 1)}
           />
-
-          {step < totalSteps - 1 ? (
-            <Button
-              text="Next"
-              onPress={() => setStep(step + 1)}
-            />
-          ) : (
-            <Button
-              text="Submit"
-              onPress={() => console.log(form)}
-            />
-          )}
+          <Button
+            text={step === totalSteps - 1 ? 'Submit' : 'Next'}
+            onPress={() =>
+              step === totalSteps - 1
+                ? console.log(form)
+                : setStep(step + 1)
+            }
+          />
         </View>
-
       </View>
     </ScrollView>
   );
 }
 
-/* ===================== COMPONENTS ===================== */
+/*  COMPONENTS  */
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -252,9 +262,9 @@ function Button({
         styles.button,
         disabled && styles.buttonDisabled,
       ]}
-      onPress={onPress}
       disabled={disabled}
-      activeOpacity={disabled ? 1 : 0.7}
+      onPress={onPress}
+      activeOpacity={0.8}
     >
       <Text
         style={[
@@ -268,107 +278,112 @@ function Button({
   );
 }
 
-
-/* ===================== STYLES ===================== */
+/*  STYLES */
 
 const styles = StyleSheet.create({
   container: {
-
-    backgroundColor: '#fff',
-    padding: 16,
+    backgroundColor: '#f5f3ff',
+  },
+  content: {
+    paddingVertical: 32,
+    alignItems: 'center',
   },
 
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  formWrapper: {
+    width: '92%',
+    maxWidth: 420,
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    padding: 24,
+
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
   },
 
   progressWrap: {
     height: 6,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 4,
+    backgroundColor: '#ede9fe',
+    borderRadius: 6,
+    overflow: 'hidden',
     marginBottom: 12,
   },
   progressBar: {
     height: '100%',
     backgroundColor: PURPLE,
-    borderRadius: 4,
+    borderRadius: 6,
   },
+
   stepText: {
     color: PURPLE,
-    fontWeight: '600',
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+
+  section: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginTop: 20,
     marginBottom: 12,
   },
-  section: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: PURPLE,
-    marginVertical: 12,
-  },
+
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
+
   inputWrap: {
     width: '48%',
-    marginBottom: 10,
+    marginBottom: 14,
   },
   label: {
     fontSize: 12,
-    marginBottom: 4,
-    color: '#333',
+    marginBottom: 6,
+    color: '#6b7280',
   },
   input: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: PURPLE,
-    borderRadius: 8,
-    padding: 8,
-    backgroundColor: '#fff',
+    borderColor: '#e5e7eb',
   },
+
   textArea: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 12,
+    minHeight: 100,
     borderWidth: 1,
-    borderColor: PURPLE,
-    borderRadius: 8,
-    padding: 10,
-    minHeight: 80,
+    borderColor: '#e5e7eb',
     width: '100%',
   },
+
   navRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 24,
+    marginTop: 28,
   },
+
   button: {
     backgroundColor: PURPLE,
     paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 10,
+    paddingHorizontal: 28,
+    borderRadius: 14,
   },
   buttonText: {
-    color: '#fff',
+    color: '#ffffff',
     fontWeight: '700',
   },
   buttonDisabled: {
     backgroundColor: '#e5e7eb',
   },
-
   buttonTextDisabled: {
     color: '#9ca3af',
   },
-  formWrapper: {
-  width: '90%',
-  maxWidth: 420,
-  alignSelf: 'center',
-
-  borderWidth: 1,
-  borderColor: '#7c3aed',  
-  borderRadius: 12,
-
-  padding: 30,
-  backgroundColor: '#ffffff',
-},
-
-
 });
