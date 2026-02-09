@@ -2,22 +2,19 @@ import {
   View,
   StyleSheet,
   Animated,
-  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
-
-const { height } = Dimensions.get('window');
 
 export default function Splash() {
   const router = useRouter();
 
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const moveUpAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Logo scale + fade animation
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
@@ -32,14 +29,9 @@ export default function Splash() {
       }),
     ]).start();
 
+    // Navigate after splash delay
     const timer = setTimeout(() => {
-      Animated.timing(moveUpAnim, {
-        toValue: -height * 0.28,
-        duration: 700,
-        useNativeDriver: true,
-      }).start(() => {
-        router.replace('/login');
-      });
+      router.replace('/login');
     }, 2000);
 
     return () => clearTimeout(timer);
@@ -50,11 +42,7 @@ export default function Splash() {
       colors={['#8b5cf6', '#4c1d95']}
       style={styles.container}
     >
-      <Animated.View
-        style={{
-          transform: [{ translateY: moveUpAnim }],
-        }}
-      >
+      <View>
         <View style={styles.logoHalo}>
           <View style={styles.logoCard}>
             <Animated.Image
@@ -70,7 +58,7 @@ export default function Splash() {
             />
           </View>
         </View>
-      </Animated.View>
+      </View>
     </LinearGradient>
   );
 }
