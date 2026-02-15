@@ -30,10 +30,20 @@ export default function DrawerLayout() {
     <Drawer
       screenOptions={{
         headerShown: true,
-        drawerActiveBackgroundColor: '#7c3aed',
+        headerStyle: { backgroundColor: '#ffffff' },
+        drawerActiveBackgroundColor: '#6B46C1',
         drawerActiveTintColor: '#FFFFFF',
+        headerTintColor: '#000000',
         drawerInactiveTintColor: '#000000',
+
+        drawerStyle: {
+          backgroundColor: '#ffffff',
+        },
+        drawerContentStyle: {
+          backgroundColor: '#ffffff',
+        },
       }}
+
       drawerContent={(props) => {
         const router = useRouter();
 

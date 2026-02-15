@@ -9,17 +9,86 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { useContext } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '@/context/authContext';
 import { getGreeting, getFormattedDate } from '@/helpers/dateTime';
+import * as Location from 'expo-location';
+import axios from 'axios';
+
 
 export default function Dashboard() {
-    // Dummy state - replace with actual data from your backend/context
-    const isCheckedIn = false;
-    const shiftInProgress = true;
-    const location = 'Aniyakanda Primary Substation';
-    const shiftTime = '08:00 AM – 04:00 PM';
-    
+
+
+    type CurrentShift = {
+        id: number;
+        shift_date: string;
+
+        status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+        attendance_status: 'PENDING' | 'PRESENT' | 'ON_LEAVE' | 'ABSENT';
+
+        startTime: string;
+        endTime: string;
+        shiftCategory: string;
+
+        substation_id: number;
+        substation_name: string;
+    };
+
+    const getShiftLabel = (shift: any) => {
+        if (!shift) return "—";
+
+        if (shift.shiftId === "SH-1") return "Day Shift";
+        if (shift.shiftId === "SH-2") return "Night Shift - Part 1";
+        if (shift.shiftId === "SH-3") return "Night Shift - Part 2";
+
+        return "Shift";
+    };
+
+    const [currentShift, setCurrentShift] = useState<CurrentShift | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    const auth = useContext(AuthContext);
+
+    const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+
+    useEffect(() => {
+        if (!auth?.token) return;
+
+        const fetchShift = async () => {
+            try {
+                const res = await axios.get('http://BASE_URL:7000/shift/current', {
+                    headers: {
+                        Authorization: `Bearer ${auth.token}`,
+                    },
+                });
+
+                setCurrentShift(res.data);
+                console.log('Current Shift Data:', res.data);
+            } catch (err) {
+                console.error(err);
+                setCurrentShift(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchShift();
+
+        //second call every minute
+        const interval = setInterval(fetchShift, 60000);
+
+        return () => clearInterval(interval);
+    }, [auth?.token]);
+
+    const isCheckedIn = currentShift?.attendance_status === 'PRESENT';
+
+    const location = auth?.user?.substation?.name || '—';
+
+    const shiftTime = currentShift
+        ? `${currentShift.startTime} – ${currentShift.endTime}`
+        : '—';
+
+
     // Weekly stats
     const totalShiftsThisWeek = 5;
     const dayShifts = 3;
@@ -28,10 +97,62 @@ export default function Dashboard() {
     const weeklyHourLimit = 45;
     const overtimeHours = 0;
 
-    const auth = useContext(AuthContext);
+
     const employeeName = auth?.user?.userName || 'Employee';
 
     console.log('User from AuthContext:', auth?.user?.userName);
+
+
+    // check in user
+    const checkin = async () => {
+        try {
+            //  Ask permission
+            const { status } = await Location.requestForegroundPermissionsAsync();
+
+            if (status !== 'granted') {
+                alert('Location permission is required.');
+                return;
+            }
+
+            //  Get current position
+            const location = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.High,
+            });
+
+            const { latitude, longitude, accuracy } = location.coords;
+
+            console.log("User location:", latitude, longitude, accuracy);
+
+            //  Send to backend
+            const response = await axios.post(
+                'http://BASE_URL:7000/attendance/checkin',
+                {
+                    latitude,
+                    longitude,
+                    accuracy,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${auth?.token}`,
+                    },
+                }
+            );
+
+            console.log("Check-in response:", response.data);
+
+            alert(response.data.message || "Checked in successfully!");
+
+        } catch (error: any) {
+            console.error(error);
+
+            if (error.response) {
+                alert(error.response.data.message || "Check-in failed");
+            } else {
+                alert("Server not reachable");
+            }
+        }
+    };
+
 
     return (
         <>
@@ -94,60 +215,55 @@ export default function Dashboard() {
                         <View style={styles.cardHeader}>
                             <Text style={styles.cardTitle}>Current Shift</Text>
 
-                            {shiftInProgress && (
-                                <View style={styles.statusPill}>
-                                    <Text style={styles.statusPillText}>In Progress</Text>
+                            {/* Status Indicator */}
+                            <View style={styles.shiftBadge}>
+                                <Ionicons
+                                    name={currentShift?.shiftCategory === "DAY" ? "sunny" : "moon"}
+                                    size={16}
+                                    color="#fff"
+                                />
+                                <Text style={styles.shiftBadgeText}>
+                                    {getShiftLabel(currentShift)}
+                                </Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.details}>
+
+                            {/* Location Info */}
+                            <View style={styles.detailRow}>
+                                <View style={styles.detailIconContainer}>
+                                    <Ionicons name="location-outline" size={20} color="#c01313" />
                                 </View>
-                            )}
-                        </View>
-
-                        {/* Location Info */}
-                        <View style={styles.detailRow}>
-                            <View style={styles.detailIconContainer}>
-                                <Ionicons name="location-outline" size={20} color="#6B7280" />
+                                <View style={styles.detailText}>
+                                    <Text style={styles.detailLabel}>Location</Text>
+                                    <Text style={styles.detailValue}>{location}</Text>
+                                </View>
                             </View>
-                            <View style={styles.detailText}>
-                                <Text style={styles.detailLabel}>Location</Text>
-                                <Text style={styles.detailValue}>{location}</Text>
-                            </View>
-                        </View>
 
-                        {/* Time Info */}
-                        <View style={styles.detailRow}>
-                            <View style={styles.detailIconContainer}>
-                                <Ionicons name="time-outline" size={20} color="#6B7280" />
+                            {/* Time Info */}
+                            <View style={styles.detailRow}>
+                                <View style={styles.detailIconContainer}>
+                                    <Ionicons name="time-outline" size={20} color="#6366F1" />
+                                </View>
+                                <View style={styles.detailText}>
+                                    <Text style={styles.detailLabel}>Shift Time</Text>
+                                    <Text style={styles.detailValue}>{shiftTime}</Text>
+                                </View>
                             </View>
-                            <View style={styles.detailText}>
-                                <Text style={styles.detailLabel}>Shift Time</Text>
-                                <Text style={styles.detailValue}>{shiftTime}</Text>
-                            </View>
-                        </View>
 
-                        {/* Status Indicator */}
-                        <View style={styles.statusIndicator}>
-                            <View
-                                style={[
-                                    styles.statusDot,
-                                    { backgroundColor: isCheckedIn ? '#22c55e' : '#ef4444' },
-                                ]}
-                            />
-                            <Text style={[
-                                styles.statusText,
-                                { color: isCheckedIn ? '#166534' : '#991B1B' }
-                            ]}>
-                                {isCheckedIn ? 'Checked In' : 'Not Checked In'}
-                            </Text>
-                        </View>
 
-                        {/* Action Button */}
-                        <TouchableOpacity
-                            style={styles.primaryButton}
-                            activeOpacity={0.9}
-                        >
-                            <Text style={styles.primaryButtonText}>
-                                {isCheckedIn ? 'Check Out' : 'Check In'}
-                            </Text>
-                        </TouchableOpacity>
+                            {/* Action Button */}
+                            <TouchableOpacity
+                                onPress={checkin}
+                                style={styles.primaryButton}
+                                activeOpacity={0.9}
+                            >
+                                <Text style={styles.primaryButtonText}>
+                                    {isCheckedIn ? 'Check Out' : 'Check In'}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     {/* WEEKLY HOURS CARD */}
@@ -358,6 +474,9 @@ const styles = StyleSheet.create({
         color: '#1F2937',
         fontWeight: '500',
     },
+    details: {
+        gap: 10
+    },
 
     // STATUS INDICATOR
     statusIndicator: {
@@ -379,6 +498,23 @@ const styles = StyleSheet.create({
     statusText: {
         fontSize: 14,
         fontWeight: '500',
+    },
+    shiftBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        backgroundColor: '#6366F1',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        marginBottom: 16,
+    },
+
+    shiftBadgeText: {
+        color: '#fff',
+        marginLeft: 6,
+        fontSize: 13,
+        fontWeight: '600',
     },
 
     // PRIMARY BUTTON
