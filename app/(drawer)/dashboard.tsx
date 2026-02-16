@@ -16,6 +16,7 @@ import * as Location from 'expo-location';
 import axios from 'axios';
 import { Modal } from 'react-native';
 import { ActivityIndicator } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 
 export default function Dashboard() {
@@ -56,7 +57,7 @@ export default function Dashboard() {
     const [showCheckOutModal, setShowCheckOutModal] = useState(false);
     const [modalLoading, setModalLoading] = useState(false);
     const [modalError, setModalError] = useState<string | null>(null);
-
+    const [modalSuccess, setModalSuccess] = useState(false);
 
     const auth = useContext(AuthContext);
 
@@ -137,88 +138,114 @@ export default function Dashboard() {
     console.log('User from AuthContext:', auth?.user?.userName);
 
     // modal operations
+    //check in user
     const confirmCheckIn = async () => {
         try {
             setModalLoading(true);
             setModalError(null);
 
-            const response = await checkin();
-            // checkin must return response.data
-
-            if (response?.attendance_status === "PRESENT") {
-                setShowCheckInModal(false);
-            } else {
-                setModalError("Check-in failed. Please try again.");
-            }
-
-        } catch (err: any) {
-            setModalError("Something went wrong.");
-        } finally {
-            setModalLoading(false);
-        }
-    };
-
-    // modal operations
-    const confirmCheckOut = async () => {
-        setShowCheckOutModal(false);
-        await handleCheckout();
-    };
-
-    // check in user
-    const checkin = async () => {
-        try {
-            //  Ask permission
             const { status } = await Location.requestForegroundPermissionsAsync();
 
             if (status !== 'granted') {
-                alert('Location permission is required.');
+                setModalError("Location permission required");
+                setModalLoading(false);
                 return;
             }
 
-            //  Get current position
             const location = await Location.getCurrentPositionAsync({
                 accuracy: Location.Accuracy.High,
             });
 
-            const { latitude, longitude, } = location.coords;
+            const { latitude, longitude } = location.coords;
 
-            console.log("User location:", latitude, longitude);
-
-            //  Send to backend
             const response = await axios.post(
                 'http://localhost:7000/attendance/checkin',
-                {
-                    latitude,
-                    longitude,
-
-                },
+                { latitude, longitude },
                 {
                     headers: {
                         Authorization: `Bearer ${auth?.token}`,
                     },
                 }
             );
-            if (response.status === 200) {
-                await fetchAttendanceStatus();
-                alert(response.data.message);
-            }
 
-            return response.data;
+            if (response.data.attendance_status === "PRESENT") {
+
+                //  Haptic feedback
+                await Haptics.impactAsync(
+                    Haptics.ImpactFeedbackStyle.Medium
+                );
+
+                //  Show green check
+                setModalSuccess(true);
+
+                // Refresh status
+                await fetchAttendanceStatus();
+
+                // Wait 1s so user sees success
+                setTimeout(() => {
+                    resetModalState();
+                    setModalSuccess(false);
+                    setShowCheckInModal(false);
+                }, 1000);
+            }
 
         } catch (error: any) {
-            console.error(error);
-
-            if (error.response) {
-                alert(error.response.data.message || "Check-in failed");
-            } else {
-                alert("Server not reachable");
-            }
+            setModalError(
+                error.response?.data?.message || "Check-in failed"
+            );
+        } finally {
+            setModalLoading(false);
         }
     };
 
-    //check out user
 
-    const handleCheckout = async () => { }
+    //check out user
+    const confirmCheckOut = async () => {
+        try {
+            setModalLoading(true);
+            setModalError(null);
+
+            const response = await axios.post(
+                'http://localhost:7000/attendance/checkout',
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${auth?.token}`,
+                    },
+                }
+            );
+
+            if (response.data.attendance_status === "PENDING") {
+
+                await Haptics.notificationAsync(
+                    Haptics.NotificationFeedbackType.Success
+                );
+
+                setModalSuccess(true);
+
+                await fetchAttendanceStatus();
+
+                setTimeout(() => {
+                    resetModalState();
+                    setModalSuccess(false);
+                    setShowCheckOutModal(false);
+                }, 800);
+            }
+
+        } catch (error: any) {
+            setModalError(
+                error.response?.data?.message || "Check-out failed"
+            );
+        } finally {
+            setModalLoading(false);
+        }
+    };
+
+    const resetModalState = () => {
+        setModalError(null);
+        setModalSuccess(false);
+        setModalLoading(false);
+    };
 
 
     return (
@@ -323,6 +350,7 @@ export default function Dashboard() {
                             {/* Action Button */}
                             <TouchableOpacity
                                 onPress={() => {
+                                    resetModalState();
                                     if (isCheckedIn) {
                                         setShowCheckOutModal(true);
                                     } else {
@@ -397,7 +425,10 @@ export default function Dashboard() {
                         <View style={styles.modalButtons}>
                             <TouchableOpacity
                                 style={styles.cancelButton}
-                                onPress={() => setShowCheckInModal(false)}
+                                onPress={() => {
+                                    resetModalState();
+                                    setShowCheckInModal(false);
+                                }}
                             >
                                 <Text style={styles.cancelText}>Cancel</Text>
                             </TouchableOpacity>
@@ -412,6 +443,8 @@ export default function Dashboard() {
                             >
                                 {modalLoading ? (
                                     <ActivityIndicator color="#fff" />
+                                ) : modalSuccess ? (
+                                    <Ionicons name="checkmark-circle" size={22} color="#16e77b" />
                                 ) : (
                                     <Text style={styles.confirmText}>Confirm</Text>
                                 )}
@@ -444,7 +477,10 @@ export default function Dashboard() {
                         <View style={styles.modalButtons}>
                             <TouchableOpacity
                                 style={styles.cancelButton}
-                                onPress={() => setShowCheckInModal(false)}
+                                onPress={() => {
+                                    resetModalState();
+                                    setShowCheckOutModal(false);
+                                }}
                             >
                                 <Text style={styles.cancelText}>Cancel</Text>
                             </TouchableOpacity>
@@ -454,7 +490,7 @@ export default function Dashboard() {
                                     styles.confirmButton,
                                     modalLoading && { opacity: 0.6 }
                                 ]}
-                                onPress={confirmCheckIn}
+                                onPress={confirmCheckOut}
                                 disabled={modalLoading}
                             >
                                 {modalLoading ? (
