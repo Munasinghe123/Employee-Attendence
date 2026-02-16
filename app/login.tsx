@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path, Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import axios from 'axios';
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import { AuthContext } from '@/context/authContext';
 
 const { width, height } = Dimensions.get('window');
@@ -35,6 +35,13 @@ export default function Login() {
 
   // const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 
+  useEffect(() => {
+    if (auth?.token) {
+      router.replace('/dashboard');
+    }
+  }, [auth?.token]);
+
+  
   if (!auth) throw new Error('AuthContext must be used within AuthProvider');
   const { login } = auth;
 
@@ -138,55 +145,58 @@ export default function Login() {
 
           {/* Fields */}
           <View style={styles.fieldsBlock}>
-            <Text style={styles.fieldLabel}>EMPLOYEE ID</Text>
-            <View style={styles.inputWrapper}>
-              <View style={styles.iconBox}>
-                <Ionicons name="person-outline" size={18} color="#7C3AED" />
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your employee ID"
-                value={employeeId}
-                onChangeText={setEmployeeId}
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholderTextColor="#D1D5DB"
-              />
-              {employeeId.length > 0 && (
-                <View style={styles.checkBox}>
-                  <Ionicons name="checkmark" size={16} color="#10B981" />
+            <View>
+              <Text style={styles.fieldLabel}>EMPLOYEE ID</Text>
+              <View style={styles.inputWrapper}>
+                <View style={styles.iconBox}>
+                  <Ionicons name="person-outline" size={18} color="#7C3AED" />
                 </View>
-              )}
-            </View>
-
-            <Text style={styles.fieldLabel}>PASSWORD</Text>
-            <View style={styles.inputWrapper}>
-              <View style={styles.iconBox}>
-                <Ionicons name="lock-closed-outline" size={18} color="#7C3AED" />
-              </View>
-              <TextInput
-                style={[styles.input, { paddingRight: 48 }]}
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholderTextColor="#D1D5DB"
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeButton}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                  size={20}
-                  color="#9CA3AF"
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your employee ID"
+                  value={employeeId}
+                  onChangeText={setEmployeeId}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholderTextColor="#D1D5DB"
                 />
-              </TouchableOpacity>
+                {employeeId.length > 0 && (
+                  <View style={styles.checkBox}>
+                    <Ionicons name="checkmark" size={16} color="#10B981" />
+                  </View>
+                )}
+              </View>
             </View>
 
+            <View>
+              <Text style={styles.fieldLabel}>PASSWORD</Text>
+              <View style={styles.inputWrapper}>
+                <View style={styles.iconBox}>
+                  <Ionicons name="lock-closed-outline" size={18} color="#7C3AED" />
+                </View>
+                <TextInput
+                  style={[styles.input, { paddingRight: 48 }]}
+                  placeholder="Password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholderTextColor="#D1D5DB"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeButton}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                    size={20}
+                    color="#9CA3AF"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
             <TouchableOpacity style={styles.forgotRow} activeOpacity={0.7}>
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
@@ -224,7 +234,7 @@ const styles = StyleSheet.create({
 
   topSection: {
     alignItems: 'center',
-    justifyContent: 'center', // vertically center logo + text in the fixed height
+    justifyContent: 'center',
     paddingTop: 20,
   },
 

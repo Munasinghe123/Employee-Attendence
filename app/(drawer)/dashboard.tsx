@@ -14,6 +14,8 @@ import { AuthContext } from '@/context/authContext';
 import { getGreeting, getFormattedDate } from '@/helpers/dateTime';
 import * as Location from 'expo-location';
 import axios from 'axios';
+import { Modal } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 
 
 export default function Dashboard() {
@@ -24,7 +26,6 @@ export default function Dashboard() {
         shift_date: string;
 
         status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
-        attendance_status: 'PENDING' | 'PRESENT' | 'ON_LEAVE' | 'ABSENT';
 
         startTime: string;
         endTime: string;
@@ -33,6 +34,10 @@ export default function Dashboard() {
         substation_id: number;
         substation_name: string;
     };
+
+    type AttendenceStatus = {
+        attendance_status: 'PENDING' | 'PRESENT' | 'ON_LEAVE' | 'ABSENT';
+    }
 
     const getShiftLabel = (shift: any) => {
         if (!shift) return "—";
@@ -46,17 +51,39 @@ export default function Dashboard() {
 
     const [currentShift, setCurrentShift] = useState<CurrentShift | null>(null);
     const [loading, setLoading] = useState(true);
+    const [attendanceStatus, setAttendanceStatus] = useState<AttendenceStatus | null>(null);
+    const [showCheckInModal, setShowCheckInModal] = useState(false);
+    const [showCheckOutModal, setShowCheckOutModal] = useState(false);
+    const [modalLoading, setModalLoading] = useState(false);
+    const [modalError, setModalError] = useState<string | null>(null);
+
 
     const auth = useContext(AuthContext);
 
-    const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+    const fetchAttendanceStatus = async () => {
+        try {
+            const res = await axios.get(
+                'http://localhost:7000/attendance/status',
+                {
+                    headers: {
+                        Authorization: `Bearer ${auth?.token}`,
+                    },
+                }
+            );
+
+            setAttendanceStatus(res.data);
+            console.log("current attendence data", res.data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     useEffect(() => {
         if (!auth?.token) return;
 
         const fetchShift = async () => {
             try {
-                const res = await axios.get('http://BASE_URL:7000/shift/current', {
+                const res = await axios.get('http://localhost:7000/shift/current', {
                     headers: {
                         Authorization: `Bearer ${auth.token}`,
                     },
@@ -72,20 +99,24 @@ export default function Dashboard() {
             }
         };
 
+        fetchAttendanceStatus();
+
         fetchShift();
 
         //second call every minute
-        const interval = setInterval(fetchShift, 60000);
+        const interval = setInterval(() => {
+            fetchShift();
+            fetchAttendanceStatus();
+        }, 60000);
 
         return () => clearInterval(interval);
     }, [auth?.token]);
 
-    const isCheckedIn = currentShift?.attendance_status === 'PRESENT';
 
     const location = auth?.user?.substation?.name || '—';
 
     const shiftTime = currentShift
-        ? `${currentShift.startTime} – ${currentShift.endTime}`
+        ? `${currentShift.startTime.slice(0, 5)} – ${currentShift.endTime.slice(0, 5)}`
         : '—';
 
 
@@ -99,9 +130,39 @@ export default function Dashboard() {
 
 
     const employeeName = auth?.user?.userName || 'Employee';
+    const isCheckedIn = attendanceStatus?.attendance_status === 'PRESENT';
+
+    console.log("attendence status", attendanceStatus?.attendance_status);
 
     console.log('User from AuthContext:', auth?.user?.userName);
 
+    // modal operations
+    const confirmCheckIn = async () => {
+        try {
+            setModalLoading(true);
+            setModalError(null);
+
+            const response = await checkin();
+            // checkin must return response.data
+
+            if (response?.attendance_status === "PRESENT") {
+                setShowCheckInModal(false);
+            } else {
+                setModalError("Check-in failed. Please try again.");
+            }
+
+        } catch (err: any) {
+            setModalError("Something went wrong.");
+        } finally {
+            setModalLoading(false);
+        }
+    };
+
+    // modal operations
+    const confirmCheckOut = async () => {
+        setShowCheckOutModal(false);
+        await handleCheckout();
+    };
 
     // check in user
     const checkin = async () => {
@@ -119,17 +180,17 @@ export default function Dashboard() {
                 accuracy: Location.Accuracy.High,
             });
 
-            const { latitude, longitude, accuracy } = location.coords;
+            const { latitude, longitude, } = location.coords;
 
-            console.log("User location:", latitude, longitude, accuracy);
+            console.log("User location:", latitude, longitude);
 
             //  Send to backend
             const response = await axios.post(
-                'http://BASE_URL:7000/attendance/checkin',
+                'http://localhost:7000/attendance/checkin',
                 {
                     latitude,
                     longitude,
-                    accuracy,
+
                 },
                 {
                     headers: {
@@ -137,10 +198,12 @@ export default function Dashboard() {
                     },
                 }
             );
+            if (response.status === 200) {
+                await fetchAttendanceStatus();
+                alert(response.data.message);
+            }
 
-            console.log("Check-in response:", response.data);
-
-            alert(response.data.message || "Checked in successfully!");
+            return response.data;
 
         } catch (error: any) {
             console.error(error);
@@ -152,6 +215,10 @@ export default function Dashboard() {
             }
         }
     };
+
+    //check out user
+
+    const handleCheckout = async () => { }
 
 
     return (
@@ -255,8 +322,17 @@ export default function Dashboard() {
 
                             {/* Action Button */}
                             <TouchableOpacity
-                                onPress={checkin}
-                                style={styles.primaryButton}
+                                onPress={() => {
+                                    if (isCheckedIn) {
+                                        setShowCheckOutModal(true);
+                                    } else {
+                                        setShowCheckInModal(true);
+                                    }
+                                }}
+                                style={[
+                                    styles.primaryButton,
+                                    isCheckedIn ? styles.checkoutButton : styles.checkinButton
+                                ]}
                                 activeOpacity={0.9}
                             >
                                 <Text style={styles.primaryButtonText}>
@@ -300,6 +376,97 @@ export default function Dashboard() {
                     <View style={{ height: 40 }} />
                 </View>
             </ScrollView>
+            {/* check in modal */}
+            <Modal
+                visible={showCheckInModal}
+                transparent
+                animationType="fade"
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <Text style={styles.modalTitle}>Confirm Check In</Text>
+                        <Text style={styles.modalText}>
+                            Are you sure you want to check in?
+                        </Text>
+                        {modalError && (
+                            <Text style={{ color: '#EF4444', marginBottom: 12 }}>
+                                {modalError}
+                            </Text>
+                        )}
+
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={styles.cancelButton}
+                                onPress={() => setShowCheckInModal(false)}
+                            >
+                                <Text style={styles.cancelText}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.confirmButton,
+                                    modalLoading && { opacity: 0.6 }
+                                ]}
+                                onPress={confirmCheckIn}
+                                disabled={modalLoading}
+                            >
+                                {modalLoading ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={styles.confirmText}>Confirm</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+
+                    </View>
+                </View>
+            </Modal>
+
+            {/* check out modal */}
+            <Modal
+                visible={showCheckOutModal}
+                transparent
+                animationType="fade"
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <Text style={styles.modalTitle}>Confirm Check Out</Text>
+                        <Text style={styles.modalText}>
+                            Are you sure you want to check out?
+                        </Text>
+
+                        {modalError && (
+                            <Text style={{ color: '#EF4444', marginBottom: 12 }}>
+                                {modalError}
+                            </Text>
+                        )}
+
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={styles.cancelButton}
+                                onPress={() => setShowCheckInModal(false)}
+                            >
+                                <Text style={styles.cancelText}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.confirmButton,
+                                    modalLoading && { opacity: 0.6 }
+                                ]}
+                                onPress={confirmCheckIn}
+                                disabled={modalLoading}
+                            >
+                                {modalLoading ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={styles.confirmText}>Confirm</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </>
     );
 }
@@ -534,6 +701,13 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
+    checkinButton: {
+        backgroundColor: '#10B981', // green
+    },
+
+    checkoutButton: {
+        backgroundColor: '#EF4444', // red
+    },
 
     // QUICK INFO CARD
     quickInfoCard: {
@@ -571,5 +745,63 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#1F2937',
         fontWeight: '500',
+    },
+
+    //modal styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+
+    modalContainer: {
+        width: '85%',
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 24,
+    },
+
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 12,
+        color: '#1F2937',
+    },
+
+    modalText: {
+        fontSize: 14,
+        color: '#6B7280',
+        marginBottom: 20,
+    },
+
+    modalButtons: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: 12,
+    },
+
+    cancelButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        backgroundColor: '#E5E7EB',
+    },
+
+    cancelText: {
+        color: '#374151',
+        fontWeight: '500',
+    },
+
+    confirmButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        backgroundColor: '#6B46C1',
+    },
+
+    confirmText: {
+        color: '#fff',
+        fontWeight: '600',
     },
 });
