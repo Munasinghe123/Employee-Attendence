@@ -61,10 +61,10 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#7c3aed',
+    borderColor: '#e5e7eb',
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#f9fafb',
   },
 });

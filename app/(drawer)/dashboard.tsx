@@ -40,6 +40,13 @@ export default function Dashboard() {
         attendance_status: 'PENDING' | 'PRESENT' | 'ON_LEAVE' | 'ABSENT';
     }
 
+    type WeeklyStats = {
+        totalMinutes: number;
+        overtimeMinutes: number;
+        remainingMinutes: number;
+        weeklyLimitMinutes: number;
+    };
+
     const getShiftLabel = (shift: any) => {
         if (!shift) return "—";
 
@@ -58,6 +65,17 @@ export default function Dashboard() {
     const [modalLoading, setModalLoading] = useState(false);
     const [modalError, setModalError] = useState<string | null>(null);
     const [modalSuccess, setModalSuccess] = useState(false);
+    const [shiftStats, setShiftStats] = useState({
+        dayShifts: 0,
+        nightShifts: 0,
+        totalShifts: 0
+    });
+    const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({
+        totalMinutes: 0,
+        overtimeMinutes: 0,
+        remainingMinutes: 0,
+        weeklyLimitMinutes: 45 * 60
+    });
 
     const auth = useContext(AuthContext);
 
@@ -100,12 +118,41 @@ export default function Dashboard() {
             }
         };
 
-        fetchAttendanceStatus();
+        const fetchWeeklyShiftStats = async () => {
+            try {
+                const response = await axios.get('http://localhost:7000/shift/weekly-shifts', {
+                    headers: {
+                        Authorization: `Bearer ${auth.token}`,
+                    },
+                })
 
+                setShiftStats(response.data);
+            } catch (error) {
+
+            }
+        }
+
+        const fetchWeeklyStats = async () => {
+            const res = await axios.get(
+                "http://localhost:7000/attendance/weekly-hours",
+                {
+                    headers: {
+                        Authorization: `Bearer ${auth?.token}`
+                    }
+                }
+            );
+
+            setWeeklyStats(res.data);
+        }
+
+        fetchWeeklyStats();
+        fetchWeeklyShiftStats();
+        fetchAttendanceStatus();
         fetchShift();
 
         //second call every minute
         const interval = setInterval(() => {
+            fetchWeeklyShiftStats();
             fetchShift();
             fetchAttendanceStatus();
         }, 60000);
@@ -121,13 +168,10 @@ export default function Dashboard() {
         : '—';
 
 
-    // Weekly stats
-    const totalShiftsThisWeek = 5;
-    const dayShifts = 3;
-    const nightShifts = 2;
-    const totalHoursWorked = 32;
-    const weeklyHourLimit = 45;
-    const overtimeHours = 0;
+    // Weekly shifts
+    const totalShiftsThisWeek = shiftStats.totalShifts;
+    const dayShifts = shiftStats.dayShifts;
+    const nightShifts = shiftStats.nightShifts;
 
 
     const employeeName = auth?.user?.userName || 'Employee';
@@ -247,6 +291,15 @@ export default function Dashboard() {
         setModalLoading(false);
     };
 
+    const formatDuration = (minutes: number) => {
+        const hrs = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+
+        if (hrs === 0) return `${mins} mins`;
+        if (mins === 0) return `${hrs} hrs`;
+
+        return `${hrs}h ${mins}m`;
+    };
 
     return (
         <>
@@ -377,7 +430,8 @@ export default function Dashboard() {
                         <View style={styles.infoItem}>
                             <Text style={styles.infoLabel}>Total Hours</Text>
                             <Text style={styles.infoValue}>
-                                {totalHoursWorked} hrs / {weeklyHourLimit} hrs
+                                {formatDuration(weeklyStats.totalMinutes)} /
+                                {formatDuration(weeklyStats.weeklyLimitMinutes)}
                             </Text>
                         </View>
 
@@ -385,8 +439,13 @@ export default function Dashboard() {
 
                         <View style={styles.infoItem}>
                             <Text style={styles.infoLabel}>Overtime Hours</Text>
-                            <Text style={[styles.infoValue, { color: overtimeHours > 0 ? '#10B981' : '#1F2937' }]}>
-                                {overtimeHours} hrs
+                            <Text
+                                style={[
+                                    styles.infoValue,
+                                    { color: weeklyStats.overtimeMinutes > 0 ? '#10B981' : '#1F2937' }
+                                ]}
+                            >
+                                {formatDuration(weeklyStats.overtimeMinutes)}
                             </Text>
                         </View>
 
@@ -395,7 +454,7 @@ export default function Dashboard() {
                         <View style={styles.infoItem}>
                             <Text style={styles.infoLabel}>Remaining</Text>
                             <Text style={styles.infoValue}>
-                                {weeklyHourLimit - totalHoursWorked} hrs
+                                {formatDuration(weeklyStats.remainingMinutes)}
                             </Text>
                         </View>
                     </View>
