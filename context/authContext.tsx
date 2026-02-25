@@ -2,12 +2,20 @@ import React, { createContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
 
+type Substation = {
+  substationId: string;
+  name: string;
+  latitude: string;
+  longitude: string;
+};
+
 type User = {
   userName: string;
   name: string;
   employeeId: string;
   role: string;
   expIn: number;
+  substation: Substation;
 };
 
 type JwtPayload = User & {
@@ -34,6 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const decoded = jwtDecode<JwtPayload>(token);
     setUser({
       userName: decoded.userName,
+      substation: decoded.substation,
       name: decoded.name,
       employeeId: decoded.employeeId,
       role: decoded.role,

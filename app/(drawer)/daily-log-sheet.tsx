@@ -10,8 +10,12 @@ import {
 
 import DateInput from '@/components/daily-log-sheet/date-input';
 import TimeInput from '@/components/daily-log-sheet/time-input';
+import axios from 'axios';
+import { useContext } from 'react';
+import { AuthContext } from '@/context/authContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ActivityIndicator } from 'react-native';
 
-const PURPLE = '#7c3aed';
 
 /* TYPES */
 
@@ -44,38 +48,40 @@ type DailyLogForm = {
   substation: string;
   transformer01: TransformerData;
   transformer02: TransformerData;
+  total11kV?: string;
   feeders: Feeders;
   stationSupply: StationSupply;
   remarks: string;
 };
 
-type FormSection = keyof Omit<
-  DailyLogForm,
-  'date' | 'substation' | 'remarks'
->;
+const initialFormState: DailyLogForm = {
+  date: '',
+  time: '',
+  substation: '',
+  transformer01: {},
+  transformer02: {},
+  total11kV: '',
+  feeders: {},
+  stationSupply: {},
+  remarks: '',
+};
 
-/*  SCREEN  */
 
 export default function DailyLogSheet() {
-  const [step, setStep] = useState(0);
-  const totalSteps = 5;
 
-  const [form, setForm] = useState<DailyLogForm>({
-    date: '',
-    time: '',
-    substation: '',
-    transformer01: {},
-    transformer02: {},
-    feeders: {},
-    stationSupply: {},
-    remarks: '',
-  });
+  const auth = useContext(AuthContext);
+
+  const location = auth?.user?.substation?.name || '—';
+
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState<DailyLogForm>(initialFormState);
+  const [submitting, setSubmitting] = useState(false);
 
   type ObjectSections =
-  | 'transformer01'
-  | 'transformer02'
-  | 'feeders'
-  | 'stationSupply';
+    | 'transformer01'
+    | 'transformer02'
+    | 'feeders'
+    | 'stationSupply';
 
   function update<
     T extends ObjectSections,
@@ -89,6 +95,33 @@ export default function DailyLogSheet() {
       },
     }));
   }
+
+  const handleSubmit = async () => {
+    try {
+      setSubmitting(true);
+
+      const response = await axios.post(
+        'http://localhost:7000/dailyLog/add',
+        form,
+        {
+          headers: {
+            Authorization: `Bearer ${auth?.token}`,
+          },
+        }
+      );
+
+      alert("Log submitted successfully!");
+
+      setForm(initialFormState);
+      setStep(0);
+
+    } catch (error: any) {
+      console.error(error);
+      alert(error.response?.data?.message || "Submission failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const steps = [
     /* STEP 1 */
@@ -111,10 +144,9 @@ export default function DailyLogSheet() {
 
         <Input
           label="Primary Substation"
-          value={form.substation}
-          onChange={(v) =>
-            setForm((p) => ({ ...p, substation: v }))
-          }
+          value={location}
+          onChange={() => { }}
+          editable={false}
         />
       </Section>
     </View>,
@@ -122,41 +154,59 @@ export default function DailyLogSheet() {
     /* STEP 2 */
     <View key="step2">
       <Section title="Transformer 01">
-        <Input label="33kV Voltage" onChange={(v) => update('transformer01', 'kv33', v)} />
-        <Input label="11kV Voltage" onChange={(v) => update('transformer01', 'kv11', v)} />
-        <Input label="11kV Amps" onChange={(v) => update('transformer01', 'amps11', v)} />
-        <Input label="Tap Position" onChange={(v) => update('transformer01', 'tap', v)} />
-        <Input label="P.F" onChange={(v) => update('transformer01', 'pf', v)} />
+        <Input label="33kV Voltage" value={form.transformer01.kv33} onChange={(v) => update('transformer01', 'kv33', v)} />
+        <Input label="11kV Voltage" value={form.transformer01.kv11} onChange={(v) => update('transformer01', 'kv11', v)} />
+        <Input label="11kV Amps" value={form.transformer01.amps11} onChange={(v) => update('transformer01', 'amps11', v)} />
+        <Input label="Tap Position" value={form.transformer01.tap} onChange={(v) => update('transformer01', 'tap', v)} />
+        <Input label="P.F" value={form.transformer01.pf} onChange={(v) => update('transformer01', 'pf', v)} />
       </Section>
     </View>,
 
     /* STEP 3 */
     <View key="step3">
       <Section title="Transformer 02">
-        <Input label="33kV Voltage" onChange={(v) => update('transformer02', 'kv33', v)} />
-        <Input label="11kV Voltage" onChange={(v) => update('transformer02', 'kv11', v)} />
-        <Input label="11kV Amps" onChange={(v) => update('transformer02', 'amps11', v)} />
-        <Input label="Tap Position" onChange={(v) => update('transformer02', 'tap', v)} />
-        <Input label="P.F" onChange={(v) => update('transformer02', 'pf', v)} />
+        <Input label="33kV Voltage" value={form.transformer02.kv33} onChange={(v) => update('transformer02', 'kv33', v)} />
+        <Input label="11kV Voltage" value={form.transformer02.kv11} onChange={(v) => update('transformer02', 'kv11', v)} />
+        <Input label="11kV Amps" value={form.transformer02.amps11} onChange={(v) => update('transformer02', 'amps11', v)} />
+        <Input label="Tap Position" value={form.transformer02.tap} onChange={(v) => update('transformer02', 'tap', v)} />
+        <Input label="P.F" value={form.transformer02.pf} onChange={(v) => update('transformer02', 'pf', v)} />
       </Section>
     </View>,
 
-    /* STEP 4 */
+    // step 4 
     <View key="step4">
-      <Section title="Outgoing Feeders">
-        {(['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7'] as const).map((f) => (
-          <Input key={f} label={f.toUpperCase()} onChange={(v) => update('feeders', f, v)} />
-        ))}
-      </Section>
-
-      <Section title="Station Supply">
-        <Input label="Voltage" onChange={(v) => update('stationSupply', 'voltage', v)} />
-        <Input label="Amps" onChange={(v) => update('stationSupply', 'amps', v)} />
+      <Section title='11kV Total Amps'>
+        <Input label='11kV Total' value={form.total11kV}
+          onChange={(v) =>
+            setForm((p) => ({ ...p, total11kV: v }))
+          } />
       </Section>
     </View>,
 
     /* STEP 5 */
     <View key="step5">
+      <Section title="11kV Out Going Feeder Currents (Amp)">
+        {(['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7'] as const).map((f) => (
+          <Input
+            key={f}
+            label={`Feeder ${f.slice(1)}`}
+            value={form.feeders[f]}
+            onChange={(v) => update('feeders', f, v)}
+          />
+        ))}
+      </Section>
+    </View>,
+
+    // step 6
+    <View key="step6">
+      <Section title="Station Supply">
+        <Input label="Voltage" value={form.stationSupply.voltage} onChange={(v) => update('stationSupply', 'voltage', v)} />
+        <Input label="Amps" value={form.stationSupply.amps} onChange={(v) => update('stationSupply', 'amps', v)} />
+      </Section>
+    </View>,
+
+    /* STEP 7 */
+    <View key="step7">
       <Section title="Remarks">
         <TextInput
           style={styles.textArea}
@@ -170,6 +220,9 @@ export default function DailyLogSheet() {
       </Section>
     </View>,
   ];
+
+  const totalSteps = steps.length;
+  console.log("total steps", totalSteps);
 
   return (
     <ScrollView
@@ -202,11 +255,12 @@ export default function DailyLogSheet() {
           />
           <Button
             text={step === totalSteps - 1 ? 'Submit' : 'Next'}
-            onPress={() =>
+            disabled={step === 0 && (!form.date || !form.time)}
+            onPress={() => {
               step === totalSteps - 1
-                ? console.log(form)
-                : setStep(step + 1)
-            }
+                ? handleSubmit()
+                : setStep(step + 1);
+            }}
           />
         </View>
       </View>
@@ -229,10 +283,13 @@ function Input({
   label,
   value,
   onChange,
+  editable = true
 }: {
   label: string;
   value?: string;
   onChange: (v: string) => void;
+  editable?: boolean;
+
 }) {
   return (
     <View style={styles.inputWrap}>
@@ -242,6 +299,7 @@ function Input({
         onChangeText={onChange}
         style={styles.input}
         keyboardType="numeric"
+        editable={editable}
       />
     </View>
   );
@@ -251,29 +309,35 @@ function Button({
   text,
   onPress,
   disabled = false,
+  loading = false
 }: {
   text: string;
   onPress: () => void;
   disabled?: boolean;
+  loading?: boolean;
 }) {
   return (
     <TouchableOpacity
       style={[
         styles.button,
-        disabled && styles.buttonDisabled,
+        (disabled || loading) && styles.buttonDisabled,
       ]}
-      disabled={disabled}
+      disabled={disabled || loading}
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <Text
-        style={[
-          styles.buttonText,
-          disabled && styles.buttonTextDisabled,
-        ]}
-      >
-        {text}
-      </Text>
+      {loading ? (
+        <ActivityIndicator color="#ffffff" />
+      ) : (
+        <Text
+          style={[
+            styles.buttonText,
+            disabled && styles.buttonTextDisabled,
+          ]}
+        >
+          {text}
+        </Text>
+      )}
     </TouchableOpacity>
   );
 }
@@ -285,7 +349,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f3ff',
   },
   content: {
-    paddingVertical: 32,
+    paddingVertical: 40,
     alignItems: 'center',
   },
 
@@ -312,12 +376,12 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: '100%',
-    backgroundColor: PURPLE,
+    backgroundColor: '#7c3aed',
     borderRadius: 6,
   },
 
   stepText: {
-    color: PURPLE,
+    color: '#7c3aed',
     fontWeight: '700',
     marginBottom: 16,
   },
@@ -371,7 +435,7 @@ const styles = StyleSheet.create({
   },
 
   button: {
-    backgroundColor: PURPLE,
+    backgroundColor: '#7c3aed',
     paddingVertical: 12,
     paddingHorizontal: 28,
     borderRadius: 14,

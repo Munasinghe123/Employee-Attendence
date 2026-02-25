@@ -57,14 +57,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     marginBottom: 4,
-    color: '#333',
+    color: '#6b7280',
+    fontWeight: '500',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#7c3aed',
+    borderColor: '#e5e7eb',
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#f9fafb',
   },
 });
