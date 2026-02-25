@@ -137,10 +137,6 @@ export default function Login() {
           />
         </Svg>
 
-        {/* ── WHITE SECTION ──
-            flex: 1 fills the bottom half of the screen
-            justifyContent: 'space-between' → fields top, button bottom
-        ── */}
         <View style={styles.whiteSection}>
 
           {/* Fields */}
@@ -197,9 +193,7 @@ export default function Login() {
                 </TouchableOpacity>
               </View>
             </View>
-            <TouchableOpacity style={styles.forgotRow} activeOpacity={0.7}>
-              <Text style={styles.forgotText}>Forgot password?</Text>
-            </TouchableOpacity>
+           
 
             {/* Button + footer */}
             <View >
@@ -295,7 +289,7 @@ const styles = StyleSheet.create({
 
   fieldsBlock: {
     width: '100%',
-    gap: 10
+    gap: 20
   },
 
 

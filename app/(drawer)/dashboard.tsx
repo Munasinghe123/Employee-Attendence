@@ -127,6 +127,7 @@ export default function Dashboard() {
                 })
 
                 setShiftStats(response.data);
+                console.log("weekly shift stats", response.data);
             } catch (error) {
 
             }
@@ -142,6 +143,8 @@ export default function Dashboard() {
                 }
             );
 
+             console.log("weeky stats", res.data);
+
             setWeeklyStats(res.data);
         }
 
@@ -153,6 +156,7 @@ export default function Dashboard() {
         //second call every minute
         const interval = setInterval(() => {
             fetchWeeklyShiftStats();
+            fetchWeeklyStats();
             fetchShift();
             fetchAttendanceStatus();
         }, 60000);
@@ -174,7 +178,7 @@ export default function Dashboard() {
     const nightShifts = shiftStats.nightShifts;
 
 
-    const employeeName = auth?.user?.userName || 'Employee';
+    const employeeName = auth?.user?.name || 'Employee';
     const isCheckedIn = attendanceStatus?.attendance_status === 'PRESENT';
 
     console.log("attendence status", attendanceStatus?.attendance_status);
@@ -309,6 +313,7 @@ export default function Dashboard() {
                 style={styles.container}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
+                 bounces={false}
             >
                 {/* HERO HEADER */}
                 <View style={styles.heroHeader}>
@@ -459,7 +464,6 @@ export default function Dashboard() {
                         </View>
                     </View>
 
-                    {/* Bottom Spacing */}
                     <View style={{ height: 40 }} />
                 </View>
             </ScrollView>
@@ -569,7 +573,7 @@ export default function Dashboard() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F7F8FA',
+        backgroundColor: '#faf7f7',
     },
     scrollContent: {
         flexGrow: 1,
@@ -578,7 +582,7 @@ const styles = StyleSheet.create({
     // HEADER
     heroHeader: {
         backgroundColor: '#6B46C1',
-        paddingTop: 50,
+        paddingTop: 40,
         paddingBottom: 40,
         paddingHorizontal: 20,
         borderBottomLeftRadius: 0,
@@ -892,7 +896,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         paddingHorizontal: 16,
         borderRadius: 8,
-        backgroundColor: '#6B46C1',
+        backgroundColor: '#e91111',
     },
 
     confirmText: {

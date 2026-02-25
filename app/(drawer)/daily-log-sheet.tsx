@@ -14,6 +14,7 @@ import axios from 'axios';
 import { useContext } from 'react';
 import { AuthContext } from '@/context/authContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ActivityIndicator } from 'react-native';
 
 
 /* TYPES */
@@ -53,8 +54,18 @@ type DailyLogForm = {
   remarks: string;
 };
 
+const initialFormState: DailyLogForm = {
+  date: '',
+  time: '',
+  substation: '',
+  transformer01: {},
+  transformer02: {},
+  total11kV: '',
+  feeders: {},
+  stationSupply: {},
+  remarks: '',
+};
 
-/*  SCREEN  */
 
 export default function DailyLogSheet() {
 
@@ -63,17 +74,8 @@ export default function DailyLogSheet() {
   const location = auth?.user?.substation?.name || '—';
 
   const [step, setStep] = useState(0);
-
-  const [form, setForm] = useState<DailyLogForm>({
-    date: '',
-    time: '',
-    substation: '',
-    transformer01: {},
-    transformer02: {},
-    feeders: {},
-    stationSupply: {},
-    remarks: '',
-  });
+  const [form, setForm] = useState<DailyLogForm>(initialFormState);
+  const [submitting, setSubmitting] = useState(false);
 
   type ObjectSections =
     | 'transformer01'
@@ -96,7 +98,8 @@ export default function DailyLogSheet() {
 
   const handleSubmit = async () => {
     try {
-      console.log("endpoint hit")
+      setSubmitting(true);
+
       const response = await axios.post(
         'http://localhost:7000/dailyLog/add',
         form,
@@ -107,23 +110,16 @@ export default function DailyLogSheet() {
         }
       );
 
-      console.log("endpoint hit")
-      console.log(response.data);
-
-      // Clear draft after success
-      // await AsyncStorage.removeItem('daily_log_draft');
-
       alert("Log submitted successfully!");
 
-      // Reset form
-      // setForm(initialEmptyState);
+      setForm(initialFormState);
       setStep(0);
 
     } catch (error: any) {
       console.error(error);
-      alert(
-        error.response?.data?.message || "Submission failed"
-      );
+      alert(error.response?.data?.message || "Submission failed");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -150,6 +146,7 @@ export default function DailyLogSheet() {
           label="Primary Substation"
           value={location}
           onChange={() => { }}
+          editable={false}
         />
       </Section>
     </View>,
@@ -157,22 +154,22 @@ export default function DailyLogSheet() {
     /* STEP 2 */
     <View key="step2">
       <Section title="Transformer 01">
-        <Input label="33kV Voltage" onChange={(v) => update('transformer01', 'kv33', v)} />
-        <Input label="11kV Voltage" onChange={(v) => update('transformer01', 'kv11', v)} />
-        <Input label="11kV Amps" onChange={(v) => update('transformer01', 'amps11', v)} />
-        <Input label="Tap Position" onChange={(v) => update('transformer01', 'tap', v)} />
-        <Input label="P.F" onChange={(v) => update('transformer01', 'pf', v)} />
+        <Input label="33kV Voltage" value={form.transformer01.kv33} onChange={(v) => update('transformer01', 'kv33', v)} />
+        <Input label="11kV Voltage" value={form.transformer01.kv11} onChange={(v) => update('transformer01', 'kv11', v)} />
+        <Input label="11kV Amps" value={form.transformer01.amps11} onChange={(v) => update('transformer01', 'amps11', v)} />
+        <Input label="Tap Position" value={form.transformer01.tap} onChange={(v) => update('transformer01', 'tap', v)} />
+        <Input label="P.F" value={form.transformer01.pf} onChange={(v) => update('transformer01', 'pf', v)} />
       </Section>
     </View>,
 
     /* STEP 3 */
     <View key="step3">
       <Section title="Transformer 02">
-        <Input label="33kV Voltage" onChange={(v) => update('transformer02', 'kv33', v)} />
-        <Input label="11kV Voltage" onChange={(v) => update('transformer02', 'kv11', v)} />
-        <Input label="11kV Amps" onChange={(v) => update('transformer02', 'amps11', v)} />
-        <Input label="Tap Position" onChange={(v) => update('transformer02', 'tap', v)} />
-        <Input label="P.F" onChange={(v) => update('transformer02', 'pf', v)} />
+        <Input label="33kV Voltage" value={form.transformer02.kv33} onChange={(v) => update('transformer02', 'kv33', v)} />
+        <Input label="11kV Voltage" value={form.transformer02.kv11} onChange={(v) => update('transformer02', 'kv11', v)} />
+        <Input label="11kV Amps" value={form.transformer02.amps11} onChange={(v) => update('transformer02', 'amps11', v)} />
+        <Input label="Tap Position" value={form.transformer02.tap} onChange={(v) => update('transformer02', 'tap', v)} />
+        <Input label="P.F" value={form.transformer02.pf} onChange={(v) => update('transformer02', 'pf', v)} />
       </Section>
     </View>,
 
@@ -203,8 +200,8 @@ export default function DailyLogSheet() {
     // step 6
     <View key="step6">
       <Section title="Station Supply">
-        <Input label="Voltage" onChange={(v) => update('stationSupply', 'voltage', v)} />
-        <Input label="Amps" onChange={(v) => update('stationSupply', 'amps', v)} />
+        <Input label="Voltage" value={form.stationSupply.voltage} onChange={(v) => update('stationSupply', 'voltage', v)} />
+        <Input label="Amps" value={form.stationSupply.amps} onChange={(v) => update('stationSupply', 'amps', v)} />
       </Section>
     </View>,
 
@@ -258,9 +255,11 @@ export default function DailyLogSheet() {
           />
           <Button
             text={step === totalSteps - 1 ? 'Submit' : 'Next'}
+            disabled={step === 0 && (!form.date || !form.time)}
             onPress={() => {
-              console.log("button pressed, step:", step, "total:", totalSteps - 1);
-              step === totalSteps - 1 ? handleSubmit() : setStep(step + 1);
+              step === totalSteps - 1
+                ? handleSubmit()
+                : setStep(step + 1);
             }}
           />
         </View>
@@ -284,10 +283,13 @@ function Input({
   label,
   value,
   onChange,
+  editable = true
 }: {
   label: string;
   value?: string;
   onChange: (v: string) => void;
+  editable?: boolean;
+
 }) {
   return (
     <View style={styles.inputWrap}>
@@ -297,6 +299,7 @@ function Input({
         onChangeText={onChange}
         style={styles.input}
         keyboardType="numeric"
+        editable={editable}
       />
     </View>
   );
@@ -306,29 +309,35 @@ function Button({
   text,
   onPress,
   disabled = false,
+  loading = false
 }: {
   text: string;
   onPress: () => void;
   disabled?: boolean;
+  loading?: boolean;
 }) {
   return (
     <TouchableOpacity
       style={[
         styles.button,
-        disabled && styles.buttonDisabled,
+        (disabled || loading) && styles.buttonDisabled,
       ]}
-      disabled={disabled}
+      disabled={disabled || loading}
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <Text
-        style={[
-          styles.buttonText,
-          disabled && styles.buttonTextDisabled,
-        ]}
-      >
-        {text}
-      </Text>
+      {loading ? (
+        <ActivityIndicator color="#ffffff" />
+      ) : (
+        <Text
+          style={[
+            styles.buttonText,
+            disabled && styles.buttonTextDisabled,
+          ]}
+        >
+          {text}
+        </Text>
+      )}
     </TouchableOpacity>
   );
 }
